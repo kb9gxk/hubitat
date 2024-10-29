@@ -4,6 +4,7 @@ import groovy.json.*
  * pp-Code H&T Sensor
  * Version: 1.0.1  // Updated version
  * Attribution: Initial base code from https://buy.watchman.online/HubitatDriverWatchman.pdf
+ * Additional code assistance from ChatGPT, OpenAI
  * Author: kb9gxk (Jeff Parrish)
  * 
  * Changes (Version 1.0.1):
