@@ -14,12 +14,13 @@ metadata {
         author: 'kb9gxk (Jeff Parrish)',
         importUrl: 'https://raw.githubusercontent.com/kb9gxk/hubitat/refs/heads/main/hubitat-ppcode.groovy'
     ) {
-        capability 'TemperatureMeasurement' // Capability for temperature measurement
-        capability 'RelativeHumidityMeasurement' // Capability for humidity measurement
+        capability 'TemperatureMeasurement' // Capability for measuring temperature
+        capability 'RelativeHumidityMeasurement' // Capability for measuring humidity
         capability 'Sensor' // General sensor capability
-        capability 'Refresh' // Capability for refreshing data
-        capability 'Polling' // Capability for polling data
+        capability 'Refresh' // Capability to refresh sensor data
+        capability 'Polling' // Capability to poll for data
     }
+    
     preferences {
         // Input for sensor IP address
         input('ip', 'string', title: 'IP', description: 'Sensor IP Address', defaultValue: '',
@@ -30,99 +31,101 @@ metadata {
         // Input for device serial number
         input('deviceSerial', 'string', title: 'Serial', description: 'Device Serial Number',
             defaultValue: '', required: false, displayDuringSetup: true)
-        // Input for temperature format selection
-        input 'tempFormat', 'enum', title: 'Temperature Format', required: false, defaultValue: false,
+        // Input for temperature format selection (Fahrenheit or Celsius)
+        input 'tempFormat', 'enum', title: 'Temperature Format', required: false, defaultValue: 'F',
             options: [F: 'Fahrenheit', C: 'Celsius']
         // Input for auto-refresh interval
         input 'refreshEvery', 'enum', title: 'Enable auto refresh every XX Minutes', required: false,
-            defaultValue: false, options: [5: '5 minutes', 10: '10 minutes', 15: '15 minutes', 30: '30 minutes']
+            defaultValue: '30', options: [5: '5 minutes', 10: '10 minutes', 15: '15 minutes', 30: '30 minutes']
         // Input for date format selection
-        input 'locale', 'enum', title: 'Choose refresh date format', required: true, defaultValue: true,
+        input 'locale', 'enum', title: 'Choose refresh date format', required: true, defaultValue: 'US',
             options: [US: 'US MM/DD/YYYY', UK: 'UK DD/MM/YYYY']
         // Input for enabling debug logging
         input name: 'debugOutput', type: 'bool', title: 'Enable debug logging?', defaultValue: true
         // Input for enabling description text logging
         input name: 'txtEnable', type: 'bool', title: 'Enable descriptionText logging', defaultValue: true
-        // Input for rounding option
-        input 'rounding', 'bool', title: 'Round Temperature and Humidity?', defaultValue: false // New input
+        // Input for rounding option, defaulting to false
+        input 'rounding', 'bool', title: 'Round Temperature and Humidity?', defaultValue: false
     }
 }
 
 def installed() {
-    log.debug 'Installed' // Log installation
-    refresh() // Call refresh to get initial data
+    log.debug 'Installed' // Log installation event
+    refresh() // Call refresh to get initial data from the sensor
 }
 
 def updated() {
-    log.debug 'Updated' // Log update
+    log.debug 'Updated' // Log update event
     log.info 'Preferences updated...' // Log preference update
     log.warn "Debug logging is: ${debugOutput == true}" // Log debug state
     unschedule() // Unschedule any existing jobs
 
     // Schedule auto-refresh if selected
     if (refreshEvery) {
-        runEvery(refreshEvery.toInteger(), autorefresh) // Corrected method call
+        runEvery(refreshEvery.toInteger(), autorefresh) // Schedule based on user preference
         log.info "Refresh set for every ${refreshEvery} Minutes" // Log refresh schedule
     } else {
-        runEvery(30, autorefresh) // Default refresh schedule
-        log.info 'Refresh set for every 30 Minutes' // Log default refresh schedule
+        runEvery(30, autorefresh) // Default to every 30 minutes
+        log.info 'Refresh set for every 30 Minutes' // Log default schedule
     }
 
     if (debugOutput) { runIn(1800, logsOff) } // Disable debug logging after 30 minutes
-    state.LastRefresh = new Date().format('YYYY/MM/dd \n HH:mm:ss', location.timeZone) // Set timestamp
+    state.LastRefresh = new Date().format('YYYY/MM/dd \n HH:mm:ss', location.timeZone) // Set last refresh timestamp
     log.debug "Last refresh timestamp set to: ${state.LastRefresh}" // Log last refresh timestamp
     refresh() // Refresh data after update
 }
 
-
 def parse(description) {
-    logDebug "Parsing result: $description" // Log parsing info
+    logDebug "Parsing result: $description" // Log the description being parsed
     def msg = parseLanMessage(description) // Parse LAN message
 
     log.debug "Headers: ${msg.headers}" // Log message headers
     log.debug "Status: ${msg.status}" // Log message status
 
-    def body = msg.body // Get message body
-    log.debug "Raw Body: $body" // Log raw body
+    def body = msg.body // Extract message body
+    log.debug "Raw Body: $body" // Log raw body content
 
-    def decodedBody = body // Prepare to decode body
+    def decodedBody = body // Prepare for decoding
     def data
     try {
         // Attempt to parse JSON data
         data = new groovy.json.JsonSlurper().parseText(decodedBody)
         log.debug "Parsed Data: $data" // Log parsed data
     } catch (Exception e) {
-        log.error "Failed to parse JSON: ${e.message} for body: ${decodedBody}" // Log error
-        return // Exit on error
+        log.error "Failed to parse JSON: ${e.message} for body: ${decodedBody}" // Log error on failure
+        return // Exit if parsing fails
     }
 
     // Check if temperature and humidity data exist
     if (data?.Stats?.Temp && data?.Stats?.Humi) {
-        String myTemp = data.Stats.Temp.replaceAll('[F]', '') // Remove 'F'
-        String myHumi = data.Stats.Humi.replaceAll('[%]', '') // Remove '%'
+        // Process temperature
+        String myTemp = data.Stats.Temp.replaceAll('[F]', '') // Remove 'F' from temperature
+        String myHumi = data.Stats.Humi.replaceAll('[%]', '') // Remove '%' from humidity
 
-        myTemptrimmed = myTemp.substring(0, myTemp.indexOf('.')) // Trim temperature string
-        myHumitrimmed = myHumi.substring(0, myHumi.indexOf('.')) // Trim humidity string
+        // Trim to integer values
+        myTemptrimmed = myTemp.substring(0, myTemp.indexOf('.'))
+        myHumitrimmed = myHumi.substring(0, myHumi.indexOf('.'))
 
         log.debug "Trimmed Temperature: $myTemptrimmed, Trimmed Humidity: $myHumitrimmed" // Log trimmed values
 
         int myTempint = Integer.parseInt(myTemptrimmed) // Parse trimmed temperature to integer
         String TempResult
-        if (tempFormat == 'C') { // Check temperature format
-            TempResult = ((myTempint - 32) * 5 / 9) // Convert to Celsius without rounding
+        if (tempFormat == 'C') { // Convert to Celsius if selected
+            TempResult = ((myTempint - 32) * 5 / 9)
             if (rounding) { TempResult = TempResult.round() } // Round if selected
-            TempResult += 'C' // Append unit
+            TempResult += 'C' // Append Celsius unit
             log.debug "Converted Temperature to Celsius: $TempResult" // Log conversion
         } else {
             TempResult = myTempint // Keep temperature in Fahrenheit
             if (rounding) { TempResult = TempResult.round() } // Round if selected
-            TempResult += 'F' // Append unit
+            TempResult += 'F' // Append Fahrenheit unit
             log.debug "Temperature remains in Fahrenheit: $TempResult" // Log Fahrenheit
         }
 
+        // Process humidity
         String HumiResult = myHumitrimmed // Use humidity value without rounding
         if (rounding) { HumiResult = HumiResult.round() } // Round if selected
-        HumiResult += ' %' // Append unit
+        HumiResult += ' %' // Append percentage unit
         sendEvent(name: 'temperature', value: TempResult) // Send temperature event
         sendEvent(name: 'humidity', value: HumiResult) // Send humidity event
         log.info "Temperature Event Sent: $TempResult, Humidity Event Sent: $HumiResult" // Log events
@@ -132,7 +135,7 @@ def parse(description) {
 }
 
 def ping() {
-    logDebug 'ping' // Log ping
+    logDebug 'ping' // Log ping action
     poll() // Call poll function
 }
 
@@ -150,7 +153,7 @@ def logsOff() {
 def autorefresh() {
     if (debugOutput) { log.info "Getting last refresh date in ${locale} format." } // Log refresh date format
     def dateFormat = (locale == 'UK') ? 'd/MM/YYYY' : 'MM/d/YYYY' // Determine date format
-    state.LastRefresh = new Date().format("${dateFormat} \n HH:mm:ss", location.timeZone) // Set last refresh timestamp
+    state.LastRefresh = new Date().format("${dateFormat} \n HH:mm:ss", location.timeZone) // Update last refresh timestamp
     sendEvent(name: 'LastRefresh', value: state.LastRefresh, descriptionText: 'Last refresh performed') // Send event
     log.info "Executing 'auto refresh'" // Log auto refresh execution
     refresh() // Call refresh
@@ -163,7 +166,7 @@ def refresh() {
 
     def currentPort = port ?: '80' // Use specified port or default to 80
     sendHubCommand(new hubitat.device.HubAction(
-        method: 'GET', // HTTP method
+        method: 'GET', // HTTP method for the request
         path: myPath, // Request path
         headers: [
             HOST: getSensorAddress(currentPort), // Sensor address
@@ -171,7 +174,8 @@ def refresh() {
         ]
     ))
 
-    state.LastRefresh = new Date().format('MM/d/YYYY \n HH:mm:ss', location.timeZone) // Update last refresh timestamp
+    // Update last refresh timestamp
+    state.LastRefresh = new Date().format('MM/d/YYYY \n HH:mm:ss', location.timeZone) 
     log.debug "Last refresh timestamp updated to: ${state.LastRefresh}" // Log updated timestamp
 }
 
