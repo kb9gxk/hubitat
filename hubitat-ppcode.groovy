@@ -51,10 +51,10 @@ def updated() {
     unschedule() // Unschedule any previous refresh tasks
 
     if (refreshEvery) { // Check if auto-refresh interval is set
-        runEvery${refreshEvery}Minutes(autorefresh) // Schedule auto-refresh
+        runEvery(refreshEvery.toInteger(), 'autorefresh') // Schedule auto-refresh based on user preference
         log.info "Refresh set for every ${refreshEvery} Minutes" // Log refresh setting
     } else {
-        runEvery30Minutes(autorefresh) // Default to every 30 minutes
+        runEvery(30, 'autorefresh') // Default to every 30 minutes
         log.info 'Refresh set for every 30 Minutes' // Log default refresh setting
     }
     if (debugOutput) { runIn(1800, logsOff) } // Schedule debug logging to turn off after 30 minutes
@@ -62,6 +62,7 @@ def updated() {
     log.debug "Last refresh timestamp set to: ${state.LastRefresh}" // Log timestamp
     refresh() // Refresh device state
 }
+
 
 def parse(description) {
     logDebug "Parsing result: $description" // Log parsing initiation
