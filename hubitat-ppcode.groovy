@@ -2,9 +2,14 @@ import groovy.json.*
 
 /*
  * pp-Code H&T Sensor
- * Version: 1.0.0
+ * Version: 1.0.1  // Updated version
  * Attribution: Initial base code from https://buy.watchman.online/HubitatDriverWatchman.pdf
  * Author: kb9gxk (Jeff Parrish)
+ * 
+ * Changes (Version 1.0.1):
+ * - Moved the rounding option input to be after the serial number in preferences.
+ * - Updated rounding logic to round to whole numbers only if the rounding option is enabled.
+ * - Retained original float values (including decimals) when rounding is disabled.
  */
 
 metadata {
@@ -14,11 +19,11 @@ metadata {
         author: 'kb9gxk (Jeff Parrish)',
         importUrl: 'https://raw.githubusercontent.com/kb9gxk/hubitat/refs/heads/main/hubitat-ppcode.groovy'
     ) {
-        capability 'TemperatureMeasurement' // Capability for measuring temperature
-        capability 'RelativeHumidityMeasurement' // Capability for measuring humidity
-        capability 'Sensor' // General sensor capability
-        capability 'Refresh' // Capability to refresh sensor data
-        capability 'Polling' // Capability to poll for data
+        capability 'TemperatureMeasurement'
+        capability 'RelativeHumidityMeasurement'
+        capability 'Sensor'
+        capability 'Refresh'
+        capability 'Polling'
     }
     
     preferences {
@@ -31,6 +36,8 @@ metadata {
         // Input for device serial number
         input('deviceSerial', 'string', title: 'Serial', description: 'Device Serial Number',
             defaultValue: '', required: false, displayDuringSetup: true)
+        // Input for rounding option, defaulting to false
+        input 'rounding', 'bool', title: 'Round Temperature and Humidity?', defaultValue: false
         // Input for temperature format selection (Fahrenheit or Celsius)
         input 'tempFormat', 'enum', title: 'Temperature Format', required: false, defaultValue: 'F',
             options: [F: 'Fahrenheit', C: 'Celsius']
@@ -44,8 +51,6 @@ metadata {
         input name: 'debugOutput', type: 'bool', title: 'Enable debug logging?', defaultValue: true
         // Input for enabling description text logging
         input name: 'txtEnable', type: 'bool', title: 'Enable descriptionText logging', defaultValue: true
-        // Input for rounding option, defaulting to false
-        input 'rounding', 'bool', title: 'Round Temperature and Humidity?', defaultValue: false
     }
 }
 
@@ -70,7 +75,7 @@ def updated() {
     }
 
     if (debugOutput) { runIn(1800, logsOff) } // Disable debug logging after 30 minutes
-    state.LastRefresh = new Date().format('YYYY/MM/dd \n HH:mm:ss', location.timeZone) // Set last refresh timestamp
+    state.LastRefresh = new Date().format('YYYY/MM/dd \n HH:mm:ss', location.timeZone) // Last refresh timestamp
     log.debug "Last refresh timestamp set to: ${state.LastRefresh}" // Log last refresh timestamp
     refresh() // Refresh data after update
 }
@@ -96,36 +101,50 @@ def parse(description) {
         return // Exit if parsing fails
     }
 
-    // Check if temperature and humidity data exist
     if (data?.Stats?.Temp && data?.Stats?.Humi) {
-        // Process temperature
-        String myTemp = data.Stats.Temp.replaceAll('[F]', '') // Remove 'F' from temperature
-        String myHumi = data.Stats.Humi.replaceAll('[%]', '') // Remove '%' from humidity
+        // Extract temperature and humidity as strings
+        String myTemp = data.Stats.Temp.replaceAll('[F]', '') // Remove 'F'
+        String myHumi = data.Stats.Humi.replaceAll('[%]', '') // Remove '%'
 
-        // Trim to integer values
-        myTemptrimmed = myTemp.substring(0, myTemp.indexOf('.'))
-        myHumitrimmed = myHumi.substring(0, myHumi.indexOf('.'))
+        // Parse as floats to retain decimal values
+        float myTempFloat = Float.parseFloat(myTemp)
+        float myHumiFloat = Float.parseFloat(myHumi)
 
-        log.debug "Trimmed Temperature: $myTemptrimmed, Trimmed Humidity: $myHumitrimmed" // Log trimmed values
+        log.debug "Raw Temperature: $myTempFloat, Raw Humidity: $myHumiFloat" // Log raw values
 
-        int myTempint = Integer.parseInt(myTemptrimmed) // Parse trimmed temperature to integer
         String TempResult
-        if (tempFormat == 'C') { // Convert to Celsius if selected
-            TempResult = ((myTempint - 32) * 5 / 9)
-            if (rounding) { TempResult = TempResult.round() } // Round if selected
-            TempResult += 'C' // Append Celsius unit
+        if (tempFormat == 'C') { // Check temperature format
+            float tempInCelsius = (myTempFloat - 32) * 5 / 9 // Convert to Celsius
+            log.debug "Rounding setting is: ${rounding}" // Log rounding setting
+            if (rounding) {
+                log.debug "Rounding is enabled. Original Temp: $tempInCelsius" // Log before rounding
+                tempInCelsius = Math.round(tempInCelsius) // Round to nearest whole number
+                TempResult = "${tempInCelsius.toInteger()}C" // Format with unit, convert to integer
+            } else {
+                TempResult = "${tempInCelsius}C" // Keep original float value with decimals
+            }
             log.debug "Converted Temperature to Celsius: $TempResult" // Log conversion
         } else {
-            TempResult = myTempint // Keep temperature in Fahrenheit
-            if (rounding) { TempResult = TempResult.round() } // Round if selected
-            TempResult += 'F' // Append Fahrenheit unit
+            if (rounding) {
+                log.debug "Rounding is enabled. Original Temp: $myTempFloat" // Log before rounding
+                TempResult = "${Math.round(myTempFloat)}F" // Round to nearest whole number
+            } else {
+                TempResult = "${myTempFloat}F" // Keep original float value with decimals
+            }
             log.debug "Temperature remains in Fahrenheit: $TempResult" // Log Fahrenheit
         }
 
-        // Process humidity
-        String HumiResult = myHumitrimmed // Use humidity value without rounding
-        if (rounding) { HumiResult = HumiResult.round() } // Round if selected
-        HumiResult += ' %' // Append percentage unit
+        String HumiResult
+        log.debug "Rounding setting is: ${rounding}" // Log rounding setting
+        if (rounding) {
+            log.debug "Rounding is enabled. Original Humidity: $myHumiFloat" // Log before rounding
+            myHumiFloat = Math.round(myHumiFloat) // Round to nearest whole number
+            HumiResult = "${myHumiFloat.toInteger()} %" // Append unit, convert to integer
+        } else {
+            HumiResult = "${myHumiFloat} %" // Keep original float value with decimals
+        }
+
+        // Send events for temperature and humidity
         sendEvent(name: 'temperature', value: TempResult) // Send temperature event
         sendEvent(name: 'humidity', value: HumiResult) // Send humidity event
         log.info "Temperature Event Sent: $TempResult, Humidity Event Sent: $HumiResult" // Log events
@@ -153,7 +172,7 @@ def logsOff() {
 def autorefresh() {
     if (debugOutput) { log.info "Getting last refresh date in ${locale} format." } // Log refresh date format
     def dateFormat = (locale == 'UK') ? 'd/MM/YYYY' : 'MM/d/YYYY' // Determine date format
-    state.LastRefresh = new Date().format("${dateFormat} \n HH:mm:ss", location.timeZone) // Update last refresh timestamp
+    state.LastRefresh = new Date().format("${dateFormat} \n HH:mm:ss", location.timeZone) // Update timestamp
     sendEvent(name: 'LastRefresh', value: state.LastRefresh, descriptionText: 'Last refresh performed') // Send event
     log.info "Executing 'auto refresh'" // Log auto refresh execution
     refresh() // Call refresh
