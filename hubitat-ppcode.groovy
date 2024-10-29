@@ -67,10 +67,10 @@ def updated() {
 
     // Schedule auto-refresh if selected
     if (refreshEvery) {
-        runEvery(refreshEvery.toInteger(), autorefresh) // Schedule based on user preference
+        runEveryXMinutes(refreshEvery.toInteger(), autorefresh) // Schedule based on user preference
         log.info "Refresh set for every ${refreshEvery} Minutes" // Log refresh schedule
     } else {
-        runEvery(30, autorefresh) // Default to every 30 minutes
+        runEveryXMinutes(30, autorefresh) // Default to every 30 minutes
         log.info 'Refresh set for every 30 Minutes' // Log default schedule
     }
 
