@@ -12,7 +12,7 @@ metadata {
         name: 'pp-Code H&T Sensor', // Name of the device
         namespace: 'ppcode', // Namespace for the device
         author: 'kb9gxk (Jeff Parrish)', // Author's name
-        importUrl: 'https://gist.githubusercontent.com/kb9gxk/fb4c15b09c5e16af4c37776d1719de9f/raw/1c8cbcce7807af338b04ddca6d76da89debf5a76/ppcode.groovy'
+        importUrl: 'https://raw.githubusercontent.com/kb9gxk/hubitat/refs/heads/main/hubitat-ppcode.groovy'
     ) {
         capability 'TemperatureMeasurement' // Capability to measure temperature
         capability 'RelativeHumidityMeasurement' // Capability to measure humidity
