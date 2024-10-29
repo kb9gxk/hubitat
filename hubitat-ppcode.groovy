@@ -84,32 +84,31 @@ def parse(description) {
         return // Exit if parsing fails
     }
 
-    if (data?.Stats?.Temp && data?.Stats?.Humi) { // Check if required data is present
-        String myTemp = data.Stats.Temp.replaceAll('[F]', '') // Remove 'F' from temperature
-        String myHumi = data.Stats.Humi.replaceAll('[%]', '') // Remove '%' from humidity
+    if (data?.Stats?.Temp && data?.Stats?.Humi) { // Check if Temp and Humi data exist
+    String myTemp = data.Stats.Temp.replaceAll('[F]', '') // Remove 'F' from temperature
+    String myHumi = data.Stats.Humi.replaceAll('[%]', '') // Remove '%' from humidity
 
-        myTemptrimmed = myTemp.substring(0, myTemp.indexOf('.')) // Trim temperature
-        myHumitrimmed = myHumi.substring(0, myHumi.indexOf('.')) // Trim humidity
+    myTemptrimmed = myTemp.substring(0, myTemp.indexOf('.')) // Trim temperature string
+    myHumitrimmed = myHumi.substring(0, myHumi.indexOf('.')) // Trim humidity string
 
-        log.debug "Trimmed Temperature: $myTemptrimmed, Trimmed Humidity: $myHumitrimmed" // Log trimmed values
+    log.debug "Trimmed Temperature: $myTemptrimmed, Trimmed Humidity: $myHumitrimmed" // Log trimmed values
 
-        int myTempint = Integer.parseInt(myTemptrimmed) // Convert trimmed temperature to integer
-        String TempResult // Initialize temperature result variable
-        if (tempFormat == 'C') { // Check temperature format
-            TempResult = ((myTempint - 32) * 5 / 9).round() + 'C' // Convert to Celsius
-            log.debug "Converted Temperature to Celsius: $TempResult" // Log conversion
-        } else {
-            TempResult = myTempint + 'F' // Keep Fahrenheit
-            log.debug "Temperature remains in Fahrenheit: $TempResult" // Log unchanged
-        }
-
-        String HumiResult = myHumitrimmed + ' %' // Format humidity result
-        sendEvent(name: 'temperature', value: TempResult) // Send temperature event
-        sendEvent(name: 'humidity', value: HumiResult) // Send humidity event
-        log.info "Temperature Event Sent: $TempResult, Humidity Event Sent: $HumiResult" // Log sent events
+    int myTempint = Integer.parseInt(myTemptrimmed) // Parse trimmed temperature to integer
+    String TempResult
+    if (tempFormat == 'C') { // Check temperature format
+        TempResult = ((myTempint - 32) * 5 / 9) + 'C' // Convert to Celsius without rounding
+        log.debug "Converted Temperature to Celsius: $TempResult" // Log conversion
     } else {
-        log.error "Invalid data structure received from sensor: ${decodedBody}" // Log error
+        TempResult = myTempint + 'F' // Keep temperature in Fahrenheit
+        log.debug "Temperature remains in Fahrenheit: $TempResult" // Log Fahrenheit
     }
+
+    String HumiResult = myHumitrimmed + ' %' // Use humidity value without rounding
+    sendEvent(name: 'temperature', value: TempResult) // Send temperature event
+    sendEvent(name: 'humidity', value: HumiResult) // Send humidity event
+    log.info "Temperature Event Sent: $TempResult, Humidity Event Sent: $HumiResult" // Log events
+} else {
+    log.error "Invalid data structure received from sensor: ${decodedBody}" // Log error for invalid data
 }
 
 def ping() {
