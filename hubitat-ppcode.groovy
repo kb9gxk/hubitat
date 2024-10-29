@@ -58,19 +58,22 @@ def updated() {
     log.info 'Preferences updated...' // Log preference update
     log.warn "Debug logging is: ${debugOutput == true}" // Log debug state
     unschedule() // Unschedule any existing jobs
+
     // Schedule auto-refresh if selected
     if (refreshEvery) {
-        runEvery${refreshEvery}Minutes(autorefresh) // Schedule based on user input
+        runEvery(refreshEvery.toInteger(), autorefresh) // Corrected method call
         log.info "Refresh set for every ${refreshEvery} Minutes" // Log refresh schedule
     } else {
-        runEvery30Minutes(autorefresh) // Default refresh schedule
+        runEvery(30, autorefresh) // Default refresh schedule
         log.info 'Refresh set for every 30 Minutes' // Log default refresh schedule
     }
+
     if (debugOutput) { runIn(1800, logsOff) } // Disable debug logging after 30 minutes
     state.LastRefresh = new Date().format('YYYY/MM/dd \n HH:mm:ss', location.timeZone) // Set timestamp
     log.debug "Last refresh timestamp set to: ${state.LastRefresh}" // Log last refresh timestamp
     refresh() // Refresh data after update
 }
+
 
 def parse(description) {
     logDebug "Parsing result: $description" // Log parsing info
