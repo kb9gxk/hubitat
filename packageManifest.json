@@ -1,0 +1,18 @@
+{
+  "packageName": "Ring Alarm Keypad v2 HSM Suite",
+  "author": "kb9gxk",
+  "version": "1.5.0",
+  "minimumHubVersion": "2.3.5.0",
+  "dateReleased": "2026-05-31",
+  "documentationLink": "https://github.com/kb9gxk/hubitat/blob/main/README.md",
+  "communityLink": "https://community.hubitat.com",
+  "drivers": [
+    {
+      "name": "Ring Alarm Keypad v2 - HSM (KB9GXK)",
+      "namespace": "kb9gxk",
+      "location": "https://raw.githubusercontent.com/kb9gxk/hubitat/main/ring-alarm-keypad-v2-hsm.groovy",
+      "required": true
+    }
+  ],
+  "releaseNotes": "Initial 1.5.0 tracking branch release by @kb9gxk. Merged native automated volume overrides for HSM intrusion sirens, integrated standard chime interface bindings, cleaned map variable initialization loops, resolved compilation failures, and added fully automated native child component switch provisioning for HERMES panic integrations."
+}
