@@ -3,9 +3,9 @@
   "gitHubUrl": "https://github.com/kb9gxk/hubitat",
   "packages": [
     {
-      "name": "Ring Alarm Keypad v2 HSM Suite",
+      "name": "KB9GXK Hubitat Driver Suite",
       "category": "Drivers",
-      "description": "Enhanced Ring Alarm Keypad Gen 2 integration engineered explicitly for Hubitat Safety Monitor optimization, Lock Code Manager data obfuscation rules, and HERMES virtual monitoring integrations.",
+      "description": "Custom device driver catalog by @kb9gxk, including the enhanced Ring Alarm Keypad G2 HSM interface and the pp-Code local network H&T hardware sensor platform.",
       "location": "https://raw.githubusercontent.com/kb9gxk/hubitat/main/packageManifest.json"
     }
   ]
