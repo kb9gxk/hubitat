@@ -134,7 +134,7 @@ metadata {
         capability 'PowerSource'
         capability 'Motion Sensor'
         capability 'PushableButton'
-        capability 'HeldableButton'
+        capability 'HoldableButton' // <-- Fixed here
 
         command 'refresh'
         command 'entry'
