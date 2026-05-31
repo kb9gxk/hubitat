@@ -1,6 +1,6 @@
 {
-  "packageName": "Ring Alarm Keypad v2 HSM Suite",
-  "author": "kb9gxk",
+  "packageName": "KB9GXK Hubitat Driver Suite",
+  "author": "kb9gxk (Jeff Parrish)",
   "version": "1.5.0",
   "minimumHubVersion": "2.3.5.0",
   "dateReleased": "2026-05-31",
@@ -11,8 +11,16 @@
       "name": "Ring Alarm Keypad v2 - HSM (KB9GXK)",
       "namespace": "kb9gxk",
       "location": "https://raw.githubusercontent.com/kb9gxk/hubitat/main/ring-alarm-keypad-v2-hsm.groovy",
-      "required": true
+      "required": false,
+      "description": "Enhanced Ring Alarm Keypad Gen 2 driver optimized for Hubitat Safety Monitor, automatic max volume alerts during intrusion events, and embedded child switch provisioning for HERMES."
+    },
+    {
+      "name": "pp-Code H&T Sensor",
+      "namespace": "ppcode",
+      "location": "https://raw.githubusercontent.com/kb9gxk/hubitat/main/hubitat-ppcode.groovy",
+      "required": false,
+      "description": "Custom LAN monitoring driver for the pp-Code Temperature & Humidity Sensor with optional whole-number rounding overrides and dynamic locale date formatting rules."
     }
   ],
-  "releaseNotes": "Initial 1.5.0 tracking branch release by @kb9gxk. Merged native automated volume overrides for HSM intrusion sirens, integrated standard chime interface bindings, cleaned map variable initialization loops, resolved compilation failures, and added fully automated native child component switch provisioning for HERMES panic integrations."
+  "releaseNotes": "Unified repository structure release. Adds the pp-Code H&T Sensor (v1.0.1) featuring customized layout configurations alongside the Ring Alarm Keypad v2 HSM integration module."
 }
